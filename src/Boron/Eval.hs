@@ -2,17 +2,25 @@ module Boron.Eval where
 import Boron.AST
 
 import qualified Data.Map as M
-import Control.Monad.State.Lazy
+import qualified Data.List.NonEmpty as NE
+import Data.List.NonEmpty( NonEmpty( (:|) ) )
 
-data Env = Env [M.Map String Value]
+
+ 
+
+import Control.Monad.State.Lazy
+import Data.Functor.Classes (eq1)
+
+type Env = NE.NonEmpty (M.Map String Value)
 
 data Closure = Closure
   { params :: [Name],
     body :: [Expr],
     env :: Env
   }
+  deriving (Ord, Eq, Show)
 
-type Interpreter = StateT Env IO
+type Interpreter = State Env
 
 -- What an Expr reduces down to
 data Value
@@ -23,19 +31,21 @@ data Value
   | Tuple [Value]
   | Table (M.Map Value Value)
   | Lambda Closure
+  deriving (Ord, Eq, Show)
   
 
-eval :: Expr -> Env -> Interpreter Value
-eval expr env = case expr of
-  LiteralBool b -> (Bool b, env)
-  LiteralNum n -> (Int n, env)
-  LiteralString s -> (String s, env)
-  LiteralTuple tup -> (Tuple undefined, undefined)
-  LiteralTable vs -> (Table $ M.fromList vs, env)
+eval :: Expr -> State Env Value
+eval expr = case expr of
+  LiteralBool b -> pure $ Bool b
+  LiteralNum n -> pure $ Int n
+  LiteralString s -> pure $ String s
+  LiteralTuple tup -> Tuple <$> traverse eval tup
+  LiteralTable vs -> Table . M.fromList <$> traverse (\(e1, e2) -> liftA2 (,) (eval e1) (eval e2)) vs
+  Assign name rhs -> do
+    value <- eval rhs
+    modify $ \(e :| es) -> M.insert name value e :| es
+    pure $ Tuple []
   For var values inner -> undefined
   If cond whenTrue whenFalse -> undefined
   TableIndexInto maybe_t index -> undefined
-  Assign name value -> undefined
   Call f args -> undefined
-
-  

@@ -15,4 +15,4 @@ data Expr
   | TableIndexInto Expr Expr
   | Assign Name Expr
   | Call Expr [Expr]
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
