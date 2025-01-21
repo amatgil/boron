@@ -3,14 +3,9 @@ import Boron.AST
 
 import qualified Data.Map as M
 import qualified Data.List.NonEmpty as NE
-import Data.List.NonEmpty( NonEmpty( (:|) ) )
-
-
+import Data.List.NonEmpty( NonEmpty( (:|) ), (<|) )
  
-
 import Control.Monad.State.Lazy
-import Data.Functor.Classes (eq1)
-import qualified Data.List.NonEmpty as M
 
 type Env = NE.NonEmpty (M.Map String Value)
 
@@ -59,7 +54,7 @@ evalBlock :: Block -> Interpreter Value
 evalBlock block = do
   modify (M.empty <|)
   retVal <- evalExprs block
-  modify $ \(e:|es) -> NE.fromList es
+  modify $ NE.fromList . NE.tail
   pure retVal
 
 
