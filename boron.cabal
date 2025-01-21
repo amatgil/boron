@@ -62,8 +62,7 @@ library
     import:           warnings
 
     -- Modules exported by the library.
-    exposed-modules:
-      Boron.AST
+    exposed-modules: Boron.AST
 
     -- Modules included in this library but not exported.
     -- other-modules:
@@ -72,7 +71,7 @@ library
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
-    build-depends:    base ^>=4.18.2.1
+    build-depends:    base ^>=4.18.2.1, containers
 
     -- Directories containing source files.
     hs-source-dirs:   src
