@@ -3,7 +3,8 @@ let fizzbuzz := lambda (n)
     if =(mod(x, 3), 0) { "Fizz" } 
     elif =(mod(x, 5), 0) { "Buzz" }
     elif =(mod(x, 15), 0) { "FizzBuzz" }
-    else { n }
+    else { n };
+    
 
 for i in range(1, 50) {
     println(fizzbuzz(i));
