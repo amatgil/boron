@@ -1,0 +1,25 @@
+
+let is_prime = lambda (n) {
+    for i in 2..sqrt(n) {
+        if eq(mod(n, i), 0) { return false }
+    }
+    return true
+};
+
+let sieve_primality = lambda(n) { <-- all primes under n
+    let primality := {};    <-- Empty table TODO: add an optional default value to tables, true here
+    let i := 2;
+    let multiplier := 2;
+    while lt(i, n) {
+        while lt(i*multiplier, n) {
+            primality[i*multiplier] = false;
+            multiplier = multiplier + 1;
+        }
+    }
+    primality
+};
+
+print(is_prime(7)); <-- true
+print(is_prime(8)); <-- false
+
+print(sieve_primality(10)); <-- map of "is it prime" from 2 to 9
