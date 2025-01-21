@@ -10,6 +10,7 @@ import Data.List.NonEmpty( NonEmpty( (:|) ) )
 
 import Control.Monad.State.Lazy
 import Data.Functor.Classes (eq1)
+import qualified Data.List.NonEmpty as M
 
 type Env = NE.NonEmpty (M.Map String Value)
 
@@ -34,7 +35,7 @@ data Value
   deriving (Ord, Eq, Show)
   
 
-eval :: Expr -> State Env Value
+eval :: Expr -> Interpreter Value
 eval expr = case expr of
   LiteralBool b -> pure $ Bool b
   LiteralNum n -> pure $ Int n
@@ -46,6 +47,23 @@ eval expr = case expr of
     modify $ \(e :| es) -> M.insert name value e :| es
     pure $ Tuple []
   For var values inner -> undefined
-  If cond whenTrue whenFalse -> undefined
+  If condExpr whenTrue whenFalse -> do
+    cond <- eval condExpr
+    if cond == Bool True then evalBlock whenTrue else evalBlock whenFalse
+
   TableIndexInto maybe_t index -> undefined
   Call f args -> undefined
+
+ 
+evalBlock :: Block -> Interpreter Value
+evalBlock block = do
+  modify (M.empty <|)
+  retVal <- evalExprs block
+  modify $ \(e:|es) -> NE.fromList es
+  pure retVal
+
+
+evalExprs :: [Expr] -> Interpreter Value
+evalExprs []           = pure $ Tuple []
+evalExprs [expr]       = eval expr
+evalExprs (expr:exprs) = eval expr *> evalExprs exprs
