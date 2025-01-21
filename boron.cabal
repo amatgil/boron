@@ -62,7 +62,7 @@ library
     import:           warnings
 
     -- Modules exported by the library.
-    exposed-modules: Boron.AST
+    exposed-modules: Boron.AST, Boron.Eval
 
     -- Modules included in this library but not exported.
     -- other-modules:

@@ -1,21 +1,12 @@
 module Boron.AST where
 
-import qualified Data.Map as M
-
-data Clojure = IDunno
-
 type Name = String
 type Block = [Expr]
 
--- What an Expr reduces down to
-data Value
-  = Int Int
-  | Float Float
-  | Lambda Clojure
-
 -- AST proper
 data Expr
-  = LiteralNum Int
+  = LiteralBool Bool
+  | LiteralNum Int
   | LiteralString String
   | LiteralTable [(Expr, Expr)]
   | LiteralTuple [Expr]
@@ -24,3 +15,4 @@ data Expr
   | TableIndexInto Expr Expr
   | Assign Name Expr
   | Call Expr [Expr]
+  deriving (Show, Eq)
