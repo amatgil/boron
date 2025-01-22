@@ -13,6 +13,16 @@ import Control.Monad.State.Lazy
 type Scope = M.Map String Value
 type Env = NE.NonEmpty Scope
 
+bareEnv :: Env
+bareEnv = NE.singleton $ M.fromList [ ("print", BuiltIn Print)
+                                    , ("println", BuiltIn PrintLn)
+                                    ]
+
+data BuiltIn
+    = Print
+    | PrintLn
+  deriving (Ord, Eq, Show)
+
 data Closure = Closure
   { params :: [Name],
     body :: [Expr],
@@ -29,8 +39,9 @@ data Value
   | Float Float
   | String String
   | Tuple [Value]
-  | Table (M.Map Value Value) (Maybe Value) -- Map and default
-  | Lambda Closure
+  | Table (M.Map Value Value) (Maybe Value) -- Map and optional default
+  | Lambda [Name] Block
+  | BuiltIn BuiltIn
   deriving (Ord, Eq, Show)
   
 unit :: Value
@@ -79,7 +90,28 @@ eval expr = case expr of
         (Nothing, Nothing) -> error "Key not found in table"
       _else -> error "*explosion noises*"
     
-  Call f args -> undefined
+  Call fExpr argsExpr -> do
+    fnMaybe <- eval fExpr
+    args <- traverse eval argsExpr
+
+    let (names, body) = (case fnMaybe of
+                Lambda n b -> (n, b)
+                _else -> error "Cannot call a function that isn't a function")
+    let new_env = createLocalEnv names args
+
+    old_env <- get
+    put new_env
+    ret <- evalBlock body
+    put old_env
+    
+    pure ret
+    
+createLocalEnv :: [Name] -> [Value] -> Env
+createLocalEnv names args =
+  if length names == length args
+    then localEnv <| bareEnv
+    else error "You called it wrong! Whoops"
+  where localEnv = M.fromList $ zip names args
 
 evalBody :: Name -> Value -> Block -> Interpreter Value
 evalBody name value block = do
