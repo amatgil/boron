@@ -3,25 +3,14 @@ import Boron.AST
 
 import qualified Data.Map as M
 import qualified Data.List.NonEmpty as NE
-import Data.Maybe
 import Data.List.NonEmpty( NonEmpty( (:|) ), (<|) )
-import Data.Traversable
 import Data.Foldable
  
 import Control.Monad.State.Lazy
+import Text.Printf (printf)
 
 type Scope = M.Map String Value
 type Env = NE.NonEmpty Scope
-
-bareEnv :: Env
-bareEnv = NE.singleton $ M.fromList [ ("print", BuiltIn Print)
-                                    , ("println", BuiltIn PrintLn)
-                                    ]
-
-data BuiltIn
-    = Print
-    | PrintLn
-  deriving (Ord, Eq, Show)
 
 data Closure = Closure
   { params :: [Name],
@@ -65,6 +54,12 @@ eval expr = case expr of
     value <- eval rhs
     modify $ \(e :| es) -> M.insert name value e :| es
     pure unit 
+
+  Reassign name rhs -> do
+    value <- eval rhs
+    modify $ \env -> NE.fromList $ updateVar name value (NE.toList env)
+    pure unit
+
   For var valuesExpr inner -> do
     values <- evalIterable valuesExpr
 
@@ -143,3 +138,31 @@ getVar [] _ = pure Nothing
 getVar (s:ss) name = case M.lookup name s of
   Just v -> pure $ Just v
   Nothing -> getVar ss name
+
+
+updateVar :: Name -> Value -> [Scope] -> [Scope]
+updateVar name _  [] = error $ printf "%s does not exist in this env" name
+updateVar name rhs (e:es) = if M.member name e
+                            then M.update (\_ -> Just rhs) name e : es
+                            else e : updateVar name rhs es
+
+
+  
+-- ======== PRIMITIVES =========
+bareEnv :: Env
+bareEnv = NE.singleton $ M.fromList [ ("print", BuiltIn Print)
+                                    , ("println", BuiltIn PrintLn)
+                                    ]
+data BuiltIn
+    = Print
+    | PrintLn
+    | Arithmetic ArithOp
+  deriving (Ord, Eq, Show)
+
+data ArithOp
+    = Add
+    | Sub
+    | Mul
+    | Div
+    | Rem
+  deriving (Ord, Eq, Show)

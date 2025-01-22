@@ -14,6 +14,7 @@ data Expr
   | If Expr Block Block
   | TableIndexInto Expr Expr
   | Assign Name Expr
+  | Reassign Name Expr
   | Call Expr [Expr]
   | Var Name
   deriving (Show, Eq, Ord)
