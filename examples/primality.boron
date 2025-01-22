@@ -7,7 +7,7 @@ let is_prime = lambda (n) {
 };
 
 let sieve_primality = lambda(n) { <-- all primes under n
-    let primality := {};    <-- Empty table TODO: add an optional default value to tables, true here
+    let primality := {};          <-- Empty table TODO: add an optional default value to tables, true here
     let i := 2;
     let multiplier := 2;
     while lt(i, n) {

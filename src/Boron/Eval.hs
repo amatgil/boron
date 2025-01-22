@@ -29,7 +29,7 @@ data Value
   | Float Float
   | String String
   | Tuple [Value]
-  | Table (M.Map Value Value)
+  | Table (M.Map Value Value) (Maybe Value) -- Map and default
   | Lambda Closure
   deriving (Ord, Eq, Show)
   
@@ -42,7 +42,7 @@ eval expr = case expr of
   LiteralNum n -> pure $ Int n
   LiteralString s -> pure $ String s
   LiteralTuple tup -> Tuple <$> traverse eval tup
-  LiteralTable vs -> Table . M.fromList <$> traverse (\(e1, e2) -> liftA2 (,) (eval e1) (eval e2)) vs
+  LiteralTable vs -> flip Table Nothing  . M.fromList <$> traverse (\(e1, e2) -> liftA2 (,) (eval e1) (eval e2)) vs
   Var name -> do
     env <- get
     ret <- getVar (NE.toList env) name
@@ -65,13 +65,18 @@ eval expr = case expr of
 
   If condExpr whenTrue whenFalse -> do
     cond <- eval condExpr
-    if cond == Bool True then evalBlock whenTrue else evalBlock whenFalse
+    if cond == Bool True
+      then evalBlock whenTrue
+      else evalBlock whenFalse
 
   TableIndexInto maybeTExpr keyExpr -> do
     evaluated <- eval maybeTExpr 
     key <- eval keyExpr
     case evaluated of 
-      Table t -> pure . fromJust $ M.lookup key t -- TODO: Add (optional) default value for tables
+      Table t dflt -> pure $ case (M.lookup key t, dflt) of
+        (Just val, _) -> val
+        (Nothing, Just d) -> d
+        (Nothing, Nothing) -> error "Key not found in table"
       _else -> error "*explosion noises*"
     
   Call f args -> undefined
@@ -101,7 +106,7 @@ evalIterable e = do
   v <- eval e
   case v of
     Tuple tup -> pure tup
-    Table t -> pure $ map snd $ M.toList t
+    Table t _ -> pure $ map snd $ M.toList t
     _other -> error "Cannot iterate over non-tuple/table"
   
 
