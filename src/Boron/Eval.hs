@@ -7,7 +7,8 @@ import Data.List.NonEmpty( NonEmpty( (:|) ), (<|) )
  
 import Control.Monad.State.Lazy
 
-type Env = NE.NonEmpty (M.Map String Value)
+type Scope = M.Map String Value
+type Env = NE.NonEmpty Scope
 
 data Closure = Closure
   { params :: [Name],
@@ -37,6 +38,13 @@ eval expr = case expr of
   LiteralString s -> pure $ String s
   LiteralTuple tup -> Tuple <$> traverse eval tup
   LiteralTable vs -> Table . M.fromList <$> traverse (\(e1, e2) -> liftA2 (,) (eval e1) (eval e2)) vs
+  Var name -> do
+    env <- get
+    ret <- getVar (NE.toList env) name
+    pure $ case ret of
+      Just val -> val
+      Nothing -> error "Symbol does not exist in the current scope"
+    
   Assign name rhs -> do
     value <- eval rhs
     modify $ \(e :| es) -> M.insert name value e :| es
@@ -62,3 +70,10 @@ evalExprs :: [Expr] -> Interpreter Value
 evalExprs []           = pure $ Tuple []
 evalExprs [expr]       = eval expr
 evalExprs (expr:exprs) = eval expr *> evalExprs exprs
+
+
+getVar :: [Scope] -> Name -> Interpreter (Maybe Value)
+getVar [] _ = pure Nothing
+getVar (s:ss) name = case M.lookup name s of
+  Just v -> pure $ Just v
+  Nothing -> getVar ss name

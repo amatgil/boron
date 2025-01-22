@@ -15,4 +15,5 @@ data Expr
   | TableIndexInto Expr Expr
   | Assign Name Expr
   | Call Expr [Expr]
+  | Var Name
   deriving (Show, Eq, Ord)
