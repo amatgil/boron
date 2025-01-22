@@ -4,6 +4,7 @@ import Boron.AST
 import qualified Data.Map as M
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty( NonEmpty( (:|) ), (<|) )
+import Data.Traversable
  
 import Control.Monad.State.Lazy
 
@@ -30,6 +31,8 @@ data Value
   | Lambda Closure
   deriving (Ord, Eq, Show)
   
+unit :: Value
+unit = Tuple []
 
 eval :: Expr -> Interpreter Value
 eval expr = case expr of
@@ -48,8 +51,16 @@ eval expr = case expr of
   Assign name rhs -> do
     value <- eval rhs
     modify $ \(e :| es) -> M.insert name value e :| es
-    pure $ Tuple []
-  For var values inner -> undefined
+    pure unit 
+  For var valuesExpr inner -> do
+    values <- evalIterable valuesExpr
+
+    modify (M.empty <|)
+    _returned <- traverse (\v -> evalBody var v inner) values
+    modify $ NE.fromList . NE.tail
+
+    pure unit
+
   If condExpr whenTrue whenFalse -> do
     cond <- eval condExpr
     if cond == Bool True then evalBlock whenTrue else evalBlock whenFalse
@@ -57,7 +68,13 @@ eval expr = case expr of
   TableIndexInto maybe_t index -> undefined
   Call f args -> undefined
 
- 
+evalBody :: Name -> Value -> Block -> Interpreter Value
+evalBody name value block = do
+  modify $ \(e :| es) -> M.insert name value e :| es
+  _returned <- evalBlock block
+  modify $ \(e :| es) -> M.delete name e :| es
+  pure unit
+  
 evalBlock :: Block -> Interpreter Value
 evalBlock block = do
   modify (M.empty <|)
@@ -67,10 +84,18 @@ evalBlock block = do
 
 
 evalExprs :: [Expr] -> Interpreter Value
-evalExprs []           = pure $ Tuple []
+evalExprs []           = pure unit
 evalExprs [expr]       = eval expr
 evalExprs (expr:exprs) = eval expr *> evalExprs exprs
 
+evalIterable :: Expr -> Interpreter [Value]
+evalIterable e = do
+  v <- eval e
+  case v of
+    Tuple tup -> pure tup
+    Table t -> pure $ map snd $ M.toList t
+    _other -> error "Cannot iterate over non-tuple/table"
+  
 
 getVar :: [Scope] -> Name -> Interpreter (Maybe Value)
 getVar [] _ = pure Nothing
