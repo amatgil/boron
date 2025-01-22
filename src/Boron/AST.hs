@@ -1,7 +1,9 @@
 module Boron.AST where
+import Numeric.Natural
 
 type Name = String
 type Block = [Expr]
+type Nat = Natural
 
 -- AST proper
 data Expr
@@ -13,6 +15,7 @@ data Expr
   | For Name Expr Block
   | If Expr Block Block
   | TableIndexInto Expr Expr
+  | TupleIndexInto Expr Nat
   | Assign Name Expr
   | Reassign Name Expr
   | Call Expr [Expr]
