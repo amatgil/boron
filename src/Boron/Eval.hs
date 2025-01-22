@@ -40,7 +40,7 @@ data Value
   | String String
   | Tuple [Value]
   | Table (M.Map Value Value) (Maybe Value) -- Map and optional default
-  | Lambda [Name] Block
+  | Lambda [Name] Block                     -- argument names, body
   | BuiltIn BuiltIn
   deriving (Ord, Eq, Show)
   
