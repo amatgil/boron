@@ -97,22 +97,18 @@ eval expr = case expr of
     let (names, body) = (case fnMaybe of
                 Lambda n b -> (n, b)
                 _else -> error "Cannot call a function that isn't a function")
-    let new_env = createLocalEnv names args
 
-    old_env <- get
-    put new_env
-    ret <- evalBlock body
-    put old_env
-    
+    globalScope <- gets NE.last
+    let paramScope = M.fromList $ zip names args
+
+    let (ret, env') = runState (evalExprs body) (paramScope :| [globalScope]) 
+    let globalScope' = NE.last env'
+
+    modify (\env -> NE.fromList $ NE.init env ++ [globalScope'])
+
     pure ret
-    
-createLocalEnv :: [Name] -> [Value] -> Env
-createLocalEnv names args =
-  if length names == length args
-    then localEnv <| bareEnv
-    else error "You called it wrong! Whoops"
-  where localEnv = M.fromList $ zip names args
 
+  
 evalBody :: Name -> Value -> Block -> Interpreter Value
 evalBody name value block = do
   modify $ \(e :| es) -> M.insert name value e :| es
