@@ -3,8 +3,10 @@ import Boron.AST
 
 import qualified Data.Map as M
 import qualified Data.List.NonEmpty as NE
+import Data.Maybe
 import Data.List.NonEmpty( NonEmpty( (:|) ), (<|) )
 import Data.Traversable
+import Data.Foldable
  
 import Control.Monad.State.Lazy
 
@@ -56,7 +58,7 @@ eval expr = case expr of
     values <- evalIterable valuesExpr
 
     modify (M.empty <|)
-    _returned <- traverse (\v -> evalBody var v inner) values
+    traverse_ (\v -> evalBody var v inner) values
     modify $ NE.fromList . NE.tail
 
     pure unit
@@ -65,7 +67,13 @@ eval expr = case expr of
     cond <- eval condExpr
     if cond == Bool True then evalBlock whenTrue else evalBlock whenFalse
 
-  TableIndexInto maybe_t index -> undefined
+  TableIndexInto maybeTExpr keyExpr -> do
+    evaluated <- eval maybeTExpr 
+    key <- eval keyExpr
+    case evaluated of 
+      Table t -> pure . fromJust $ M.lookup key t -- TODO: Add (optional) default value for tables
+      _else -> error "*explosion noises*"
+    
   Call f args -> undefined
 
 evalBody :: Name -> Value -> Block -> Interpreter Value
