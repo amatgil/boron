@@ -91,19 +91,20 @@ eval expr = case expr of
     fnMaybe <- eval fExpr
     args <- traverse eval argsExpr
 
-    let (names, body) = (case fnMaybe of
-                Lambda n b -> (n, b)
-                _else -> error "Cannot call a function that isn't a function")
+    case fnMaybe of
+        Lambda names body -> do
+            globalScope <- gets NE.last
+            let paramScope = M.fromList $ zip names args
 
-    globalScope <- gets NE.last
-    let paramScope = M.fromList $ zip names args
+            let (ret, env') = runState (evalExprs body) (paramScope :| [globalScope]) 
+            let globalScope' = NE.last env'
 
-    let (ret, env') = runState (evalExprs body) (paramScope :| [globalScope]) 
-    let globalScope' = NE.last env'
+            modify (\env -> NE.fromList $ NE.init env ++ [globalScope'])
 
-    modify (\env -> NE.fromList $ NE.init env ++ [globalScope'])
+            pure ret
+        BuiltIn b -> evalBuiltIn b args
+        _else -> error "Cannot call a function that isn't a function"
 
-    pure ret
 
   
 evalBody :: Name -> Value -> Block -> Interpreter Value
@@ -168,3 +169,25 @@ data ArithOp
     | Div
     | Rem
   deriving (Ord, Eq, Show)
+
+evalBuiltIn :: BuiltIn -> [Value] -> Interpreter Value
+evalBuiltIn b args = case b of
+  Print -> undefined
+  PrintLn -> undefined
+  Arithmetic op -> fold (arithVal op complex) args
+    where
+      complex = calcComplexity args
+
+data ArithComplexity
+  = BoolC
+  | IntC
+  | FloatC
+
+arithCoerce :: Complexity -> Value -> Value 
+arithCoerce complexity val = undefined
+  
+arithVal :: ArithOp -> ArithComplexity -> Value -> Value -> Value
+arithVal op complex lhs rhs = let a = arithCoerce complex lhs
+                                  b = arithCoerce complex rhs
+                        in case op of
+                            Add -> 
