@@ -97,6 +97,7 @@ executable boron
     -- Other library packages from which modules are imported.
     build-depends:
         base ^>=4.18.2.1,
+        mtl >= 2.3.1 && < 2.4,
         boron
 
     -- Directories containing source files.

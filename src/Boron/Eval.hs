@@ -155,6 +155,7 @@ updateVar name rhs (e:es) = if M.member name e
 bareEnv :: Env
 bareEnv = NE.singleton $ M.fromList [ ("print", BuiltIn Print)
                                     , ("println", BuiltIn PrintLn)
+                                    , ("+", BuiltIn $ Arithmetic Add)
                                     ]
 data BuiltIn
     = Print
