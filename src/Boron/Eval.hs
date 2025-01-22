@@ -5,6 +5,7 @@ import qualified Data.Map as M
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty( NonEmpty( (:|) ), (<|) )
 import Data.Foldable
+import Data.Fixed ( mod' )
  
 import Control.Monad.State.Lazy
 import Text.Printf (printf)
@@ -24,8 +25,7 @@ type Interpreter = State Env
 -- What an Expr reduces down to
 data Value
   = Bool Bool
-  | Int Int
-  | Float Float
+  | Number Double
   | String String
   | Tuple [Value]
   | Table (M.Map Value Value) (Maybe Value) -- Map and optional default
@@ -39,7 +39,7 @@ unit = Tuple []
 eval :: Expr -> Interpreter Value
 eval expr = case expr of
   LiteralBool b -> pure $ Bool b
-  LiteralNum n -> pure $ Int n
+  LiteralNum x -> pure $ Number x
   LiteralString s -> pure $ String s
   LiteralTuple tup -> Tuple <$> traverse eval tup
   LiteralTable vs -> flip Table Nothing  . M.fromList <$> traverse (\(e1, e2) -> liftA2 (,) (eval e1) (eval e2)) vs
@@ -160,6 +160,7 @@ data BuiltIn
     = Print
     | PrintLn
     | Arithmetic ArithOp
+    | Eval
   deriving (Ord, Eq, Show)
 
 data ArithOp
@@ -174,20 +175,20 @@ evalBuiltIn :: BuiltIn -> [Value] -> Interpreter Value
 evalBuiltIn b args = case b of
   Print -> undefined
   PrintLn -> undefined
-  Arithmetic op -> fold (arithVal op complex) args
-    where
-      complex = calcComplexity args
-
-data ArithComplexity
-  = BoolC
-  | IntC
-  | FloatC
-
-arithCoerce :: Complexity -> Value -> Value 
-arithCoerce complexity val = undefined
+  Arithmetic op -> pure . Number $ foldl1 (arithVal op) (map coerceToNum args)
+  Eval  -> case args of
+    [String code] -> undefined
+    _other -> error "Can only evaluate one string" 
   
-arithVal :: ArithOp -> ArithComplexity -> Value -> Value -> Value
-arithVal op complex lhs rhs = let a = arithCoerce complex lhs
-                                  b = arithCoerce complex rhs
-                        in case op of
-                            Add -> 
+arithVal :: ArithOp -> Double -> Double -> Double
+arithVal op a b = case op of
+                    Add -> a + b
+                    Sub -> a - b
+                    Mul -> a * b
+                    Div -> a / b
+                    Rem -> a `mod'` b
+
+coerceToNum :: Value -> Double
+coerceToNum (Bool b) = if b then 1.0 else 0.0
+coerceToNum (Number x) = x
+coerceToNum _ = error "Could not coerce to number" -- TODO: Return Maybe

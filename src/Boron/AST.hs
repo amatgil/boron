@@ -6,9 +6,10 @@ type Block = [Expr]
 type Nat = Natural
 
 -- AST proper
+-- Numbers are floats (see https://www.lua.org/pil/2.3.html)
 data Expr
   = LiteralBool Bool
-  | LiteralNum Int
+  | LiteralNum Double
   | LiteralString String
   | LiteralTable [(Expr, Expr)]
   | LiteralTuple [Expr]
