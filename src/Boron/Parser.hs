@@ -7,15 +7,23 @@ import Text.Megaparsec.Char
 import Text.Megaparsec.Char.Lexer qualified as L
 import Data.Functor
 import Data.Void
-import Control.Applicative hiding (many, some)
 
 type Parser = Parsec Void String
 
+parens :: Parser a -> Parser a
+parens = between (symbol "(") (symbol ")")
+
+brackets :: Parser a -> Parser a
+brackets = between (symbol "[") (symbol "]")
+
+commaSeparated :: Parser a -> Parser [a]
+commaSeparated = flip sepBy $ symbol ","
+
 
 boolParser :: Parser Expr 
-boolParser = fmap LiteralBool $ choice
-                                [ symbol "#t" $> True
-                                , symbol "#f" $> False]
+boolParser = LiteralBool <$> choice
+                            [ symbol "#t" $> True
+                            , symbol "#f" $> False]
 
 -- Identifiers and numbers such
 lexeme :: Parser a -> Parser a
@@ -39,11 +47,14 @@ identifier = allSymbols <|> allAlphaNum
       suffix <- many $ char '\''
       pure $ prefix : (inner ++ suffix)
 
-number :: Parser Expr
-number = LiteralNum <$> choice [asBin, asHex, asDec]
+literalInt :: Parser Int
+literalInt = choice [asBin, asHex, asDec]
   where asBin = string "0b" *> L.binary
         asHex = string "0h" *> L.hexadecimal
         asDec = L.decimal
+
+literalNumber :: Parser Expr
+literalNumber = LiteralNum . toEnum <$> literalInt
 
 for :: Parser Expr
 for = do
@@ -78,6 +89,42 @@ ifthenelse = do
           rest <- many elifthenelse
           pure $ If cond whenTrue rest
 
+tableindex :: Parser Expr
+tableindex = do
+  table <- expr
+  index <- brackets expr
+  pure $ TableIndexInto table index
+
+tupleindex :: Parser Expr
+tupleindex = do
+  tup <- expr
+  _index <- char '.'
+  pos <- literalInt
+  pure $ TupleIndexInto tup pos
+  
+assignment :: Parser Expr
+assignment = do
+  lhs <- identifier
+  _op <- symbol "="
+  rhs <- expr
+  pure $ Assign lhs rhs 
+  
+reassignment :: Parser Expr
+reassignment = do
+  _let <- symbol "let"
+  lhs <- identifier
+  _op <- symbol ":="
+  rhs <- expr
+  pure $ Reassign lhs rhs 
+
+call :: Parser Expr
+call = do
+  name <- expr
+  args <- parens $ commaSeparated expr
+  pure $ Call name args
+
+var :: Parser Expr
+var = Var <$> identifier
 
 expr :: Parser Expr
 expr = undefined

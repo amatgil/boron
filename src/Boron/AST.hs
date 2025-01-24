@@ -17,7 +17,7 @@ data Expr
   | While Expr Block
   | If Expr Block Block
   | TableIndexInto Expr Expr
-  | TupleIndexInto Expr Nat
+  | TupleIndexInto Expr Int
   | Assign Name Expr
   | Reassign Name Expr
   | Call Expr [Expr]
