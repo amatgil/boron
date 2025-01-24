@@ -45,30 +45,34 @@ number = LiteralNum <$> choice [asBin, asHex, asDec]
         asHex = string "0h" *> L.hexadecimal
         asDec = L.decimal
 
--- for :: Parser Expr
--- for = do
---   _f <- string "for"
---   pure $ unit
+for :: Parser Expr
+for = do
+  _f <- symbol "for"
+  iterVar <- identifier
+  _in <- symbol "in"
+  iterVals <- expr
+  body <- block
+  pure $ For iterVar iterVals body
 
 while :: Parser Expr
 while = do
-  _w <- string "while"
+  _w <- symbol "while"
   pred <- expr
   inner <- block
   pure $ While pred inner
 
 ifthenelse :: Parser Expr
 ifthenelse = do
-  _if <- string "if"
+  _if <- symbol "if"
   cond <- expr
   whenTrue <- block
   innerRest <- elifthenelse
-  _else <- string "else"
+  _else <- symbol "else"
   whenFalse <- block
   pure $ If cond whenTrue (innerRest : whenFalse)
 
   where elifthenelse = do 
-          _elif <- string "elif"
+          _elif <- symbol "elif"
           cond <- expr
           whenTrue <- block
           rest <- many elifthenelse
