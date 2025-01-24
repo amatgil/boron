@@ -73,8 +73,9 @@ eval expr = case expr of
 
   While predicate inner -> do
     p <- eval predicate
-    evalBlock inner
-    if p == Bool True then eval $ While predicate inner
+    if p == Bool True then do
+      evalBlock inner
+      eval $ While predicate inner
     else if p == Bool False then pure unit
     else error "While predicate must be bool"
     
