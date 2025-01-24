@@ -25,7 +25,7 @@ lexeme = L.lexeme hspace
 symbol :: String -> Parser String
 symbol = L.symbol hspace
 
-name :: Parser Name
+name :: Parser String
 name = do
   prefix <- letterChar <|> oneOf validPunct
   inner  <- many $ alphaNumChar <|> oneOf validPunct
@@ -33,9 +33,36 @@ name = do
   pure $ prefix : (inner ++ suffix)
   where validPunct = "!#$%&/=*+-<>?@^_~"
 
+identifier :: Parser Name
+identifier = name
 
--- characters that 
-isValidCharInIdent :: Char -> Bool 
-isValidCharInIdent c = isAllAlphaNum ident || isAllPunct ident
-    where isAllAlphaNum = undefined
-          isAllPunct = undefined -- do not allow parens, brackets, the other brackets, commas, periods, semicolons, etc.
+number :: Parser Expr
+number = LiteralNum <$> choice [asBin, asHex, asDec]
+  where asBin = string "0b" *> L.binary
+        asHex = string "0h" *> L.hexadecimal
+        asDec = L.decimal
+
+ifthenelse :: Parser Expr
+ifthenelse = do
+  _if <- string "if"
+  cond <- expr
+  whenTrue <- block
+  innerRest <- elifthenelse
+  _else <- string "else"
+  whenFalse <- block
+  pure $ If cond whenTrue (innerRest : whenFalse)
+
+  where elifthenelse = do 
+          _elif <- string "elif"
+          cond <- expr
+          whenTrue <- block
+          rest <- many elifthenelse
+          pure $ If cond whenTrue rest
+  
+
+
+expr :: Parser Expr
+expr = undefined
+
+block :: Parser [Expr]
+block = undefined
