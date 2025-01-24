@@ -25,8 +25,8 @@ commaSeparated = flip sepEndBy $ symbol ","
 
 boolParser :: Parser Expr 
 boolParser = LiteralBool <$> choice
-                            [ symbol "#t" $> True
-                            , symbol "#f" $> False]
+                            [ try $ symbol "#t" $> True
+                            , try $ symbol "#f" $> False]
 
 -- Identifiers and numbers such
 lexeme :: Parser a -> Parser a
@@ -60,12 +60,12 @@ literalNumber :: Parser Expr
 literalNumber = LiteralNum . toEnum <$> literalInt
 
 literalTable :: Parser Expr
-literalTable = LiteralTable <$> (curlies $ commaSeparated pairs)
-  where pairs = do
-          lhs <- identifier
+literalTable = LiteralTable <$> (curlies $ commaSeparated pair)
+  where pair = do
+          lhs <- expr
           _c <- symbol ":"
           rhs <- expr
-          (lhs, rhs)
+          pure (lhs, rhs)
 
 literalTuple :: Parser Expr
 literalTuple = LiteralTuple <$> (parens $ commaSeparated expr)
@@ -142,20 +142,23 @@ var = Var <$> identifier
 
 expr :: Parser Expr
 expr = choice
-       [ boolParser
-       , literalNumber
-       , literalTuple 
-       , literalTable
-       , for
-       , while
-       , ifthenelse
-       , tableindex
-       , tupleindex
-       , assignment
-       , reassignment
-       , call
-       , var
+       [ try boolParser
+       , try literalNumber
+       , try literalTuple 
+       , try literalTable
+       , try for
+       , try while
+       , try ifthenelse
+       , try tableindex
+       , try tupleindex
+       , try assignment
+       , try reassignment
+       , try call
+       , try var
        ]
 
 block :: Parser [Expr]
 block = curlies $ expr `sepEndBy` symbol ";"
+
+parseProgram :: String -> Maybe [Expr]
+parseProgram = parseMaybe block
