@@ -14,6 +14,7 @@ data Expr
   | LiteralTable [(Expr, Expr)]
   | LiteralTuple [Expr]
   | For Name Expr Block
+  | While Expr Block
   | If Expr Block Block
   | TableIndexInto Expr Expr
   | TupleIndexInto Expr Nat

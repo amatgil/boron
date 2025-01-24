@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -w -Werror -Wincomplete-patterns #-}
+
 module Boron.Eval where
 import Boron.AST
 
@@ -68,6 +70,15 @@ eval expr = case expr of
     modify $ NE.fromList . NE.tail
 
     pure unit
+
+  While predicate inner -> do
+    p <- eval predicate
+    if p == Bool True then do
+      evalBlock inner
+      eval $ While predicate inner
+    else if p == Bool False then pure unit
+    else error "While predicate must be bool"
+    
 
   If condExpr whenTrue whenFalse -> do
     cond <- eval condExpr
@@ -156,12 +167,23 @@ bareEnv :: Env
 bareEnv = NE.singleton $ M.fromList [ ("print", BuiltIn Print)
                                     , ("println", BuiltIn PrintLn)
                                     , ("+", BuiltIn $ Arithmetic Add)
+                                    , ("-", BuiltIn $ Arithmetic Sub)
+                                    , (">", BuiltIn $ Comparison GreaterThan)
+                                    , ("<", BuiltIn $ Comparison LesserThan)
+                                    , ("=", BuiltIn $ Comparison EqualTo)
                                     ]
 data BuiltIn
     = Print
     | PrintLn
     | Arithmetic ArithOp
+    | Comparison CompOp
     | Eval
+  deriving (Ord, Eq, Show)
+
+data CompOp
+    = GreaterThan
+    | LesserThan
+    | EqualTo
   deriving (Ord, Eq, Show)
 
 data ArithOp
@@ -176,20 +198,36 @@ evalBuiltIn :: BuiltIn -> [Value] -> Interpreter Value
 evalBuiltIn b args = case b of
   Print -> undefined
   PrintLn -> undefined
-  Arithmetic op -> pure . Number $ foldl1 (arithVal op) (map coerceToNum args)
+  Arithmetic op -> pure . Number $ foldl1 (computeArithOp op) (map coerceToNum args)
+  Comparison op -> pure . Bool $ all id $ stencil (computeCompOp op) (map coerceToNum args)
   Eval  -> case args of
     [String code] -> undefined
     _other -> error "Can only evaluate one string" 
   
-arithVal :: ArithOp -> Double -> Double -> Double
-arithVal op a b = case op of
+computeArithOp :: ArithOp -> Double -> Double -> Double
+computeArithOp op a b = case op of
                     Add -> a + b
                     Sub -> a - b
                     Mul -> a * b
                     Div -> a / b
                     Rem -> a `mod'` b
 
+computeCompOp :: CompOp -> Double -> Double -> Bool
+computeCompOp op a b = case op of
+                          GreaterThan -> a > b
+                          LesserThan  -> a < b
+                          EqualTo     -> a == b
+
 coerceToNum :: Value -> Double
 coerceToNum (Bool b) = if b then 1.0 else 0.0
 coerceToNum (Number x) = x
 coerceToNum _ = error "Could not coerce to number" -- TODO: Return Maybe
+
+coerceToBool :: Value -> Bool
+coerceToBool (Bool b) = b
+coerceToBool _ = error "Could not coerce to bool" -- TODO: Return Maybe
+
+stencil :: (a -> a -> b) -> [a] -> [b]
+stencil f [] = []
+stencil f [x] = []
+stencil f (x:y:xs) = f x y : stencil f xs
