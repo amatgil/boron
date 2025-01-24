@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -w -Werror -Wincomplete-patterns #-}
+
 module Boron.Eval where
 import Boron.AST
 
@@ -62,12 +64,12 @@ eval expr = case expr of
 
   For var valuesExpr inner -> do
     values <- evalIterable valuesExpr
-
-    modify (M.empty <|)
-    traverse_ (\v -> evalBody var v inner) values
-    modify $ NE.fromList . NE.tail
-
+    evalBlock inner
     pure unit
+
+  While predicate inner -> do
+    pure unit
+    
 
   If condExpr whenTrue whenFalse -> do
     cond <- eval condExpr
