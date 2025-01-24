@@ -25,22 +25,37 @@ lexeme = L.lexeme hspace
 symbol :: String -> Parser String
 symbol = L.symbol hspace
 
-name :: Parser String
-name = do
-  prefix <- letterChar <|> oneOf validPunct
-  inner  <- many $ alphaNumChar <|> oneOf validPunct
-  suffix <- many $ char '\''
-  pure $ prefix : (inner ++ suffix)
-  where validPunct = "!#$%&/=*+-<>?@^_~"
-
-identifier :: Parser Name
-identifier = name
+identifier :: Parser String
+identifier = allSymbols <|> allAlphaNum
+  where
+    validPunct = "!#$%&/=*+-<>?@^_~"
+    allSymbols = do
+      inner <- many $ oneOf validPunct
+      suffix <- many $ char '\''
+      pure $ inner ++ suffix
+    allAlphaNum = do
+      prefix <- letterChar <|> char '_' -- must start with a letter or underscore
+      inner  <- many $ alphaNumChar <|> char '_'
+      suffix <- many $ char '\''
+      pure $ prefix : (inner ++ suffix)
 
 number :: Parser Expr
 number = LiteralNum <$> choice [asBin, asHex, asDec]
   where asBin = string "0b" *> L.binary
         asHex = string "0h" *> L.hexadecimal
         asDec = L.decimal
+
+-- for :: Parser Expr
+-- for = do
+--   _f <- string "for"
+--   pure $ unit
+
+while :: Parser Expr
+while = do
+  _w <- string "while"
+  pred <- expr
+  inner <- block
+  pure $ While pred inner
 
 ifthenelse :: Parser Expr
 ifthenelse = do
@@ -58,7 +73,6 @@ ifthenelse = do
           whenTrue <- block
           rest <- many elifthenelse
           pure $ If cond whenTrue rest
-  
 
 
 expr :: Parser Expr
