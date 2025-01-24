@@ -4,6 +4,7 @@ import Boron.AST
 import Boron.Eval
 import Boron.Parser
 import Control.Monad.State.Lazy
+import Text.Megaparsec
 
 -- evals:
 -- y := 0
@@ -38,9 +39,11 @@ main = let
           \for x in 1..5 {\
           \y += x;\
           \}\
-          \y }"
+          \}"
   in print $ parseProgram input
-  
+
+-- main :: IO ()
+-- main = print $ parseMaybe literalTable "{ \"a\": 7}"
 
 -- main :: IO ()
 -- main = let thing = [

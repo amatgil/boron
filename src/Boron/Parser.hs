@@ -46,18 +46,21 @@ identifier = allSymbols <|> allAlphaNum
       pure $ inner ++ suffix
     allAlphaNum = do
       prefix <- letterChar <|> char '_' -- must start with a letter or underscore
-      inner  <- many $ alphaNumChar <|> char '_'
+      inner  <- many (alphaNumChar <|> char '_')
       suffix <- many $ char '\''
       pure $ prefix : (inner ++ suffix)
 
 literalInt :: Parser Int
-literalInt = choice [asBin, asHex, asDec]
+literalInt = choice [try asDec, try asBin, try asHex]
   where asBin = string "0b" *> L.binary
-        asHex = string "0h" *> L.hexadecimal
+        asHex = string "0x" *> L.hexadecimal
         asDec = L.decimal
 
 literalNumber :: Parser Expr
 literalNumber = LiteralNum . toEnum <$> literalInt
+
+literalString :: Parser Expr
+literalString = LiteralString <$> lexeme (char '"' *> manyTill L.charLiteral (char '"'))
 
 literalTable :: Parser Expr
 literalTable = LiteralTable <$> (curlies $ commaSeparated pair)
@@ -82,9 +85,9 @@ for = do
 while :: Parser Expr
 while = do
   _w <- symbol "while"
-  pred <- expr
+  predicate <- expr
   inner <- block
-  pure $ While pred inner
+  pure $ While predicate inner
 
 ifthenelse :: Parser Expr
 ifthenelse = do
@@ -144,6 +147,7 @@ expr :: Parser Expr
 expr = choice
        [ try boolParser
        , try literalNumber
+       , try literalString
        , try literalTuple 
        , try literalTable
        , try for
@@ -153,8 +157,8 @@ expr = choice
        , try tupleindex
        , try assignment
        , try reassignment
-       , try call
        , try var
+       -- , try call
        ]
 
 block :: Parser [Expr]
