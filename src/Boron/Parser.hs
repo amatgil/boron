@@ -16,8 +16,11 @@ parens = between (symbol "(") (symbol ")")
 brackets :: Parser a -> Parser a
 brackets = between (symbol "[") (symbol "]")
 
+curlies:: Parser a -> Parser a
+curlies = between (symbol "{") (symbol "}")
+
 commaSeparated :: Parser a -> Parser [a]
-commaSeparated = flip sepBy $ symbol ","
+commaSeparated = flip sepEndBy $ symbol ","
 
 
 boolParser :: Parser Expr 
@@ -55,6 +58,17 @@ literalInt = choice [asBin, asHex, asDec]
 
 literalNumber :: Parser Expr
 literalNumber = LiteralNum . toEnum <$> literalInt
+
+literalTable :: Parser Expr
+literalTable = LiteralTable <$> (curlies $ commaSeparated pairs)
+  where pairs = do
+          lhs <- identifier
+          _c <- symbol ":"
+          rhs <- expr
+          (lhs, rhs)
+
+literalTuple :: Parser Expr
+literalTuple = LiteralTuple <$> (parens $ commaSeparated expr)
 
 for :: Parser Expr
 for = do
@@ -127,7 +141,21 @@ var :: Parser Expr
 var = Var <$> identifier
 
 expr :: Parser Expr
-expr = undefined
+expr = choice
+       [ boolParser
+       , literalNumber
+       , literalTuple 
+       , literalTable
+       , for
+       , while
+       , ifthenelse
+       , tableindex
+       , tupleindex
+       , assignment
+       , reassignment
+       , call
+       , var
+       ]
 
 block :: Parser [Expr]
-block = undefined
+block = curlies $ expr `sepEndBy` symbol ";"

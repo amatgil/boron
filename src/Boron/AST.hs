@@ -11,7 +11,7 @@ data Expr
   = LiteralBool Bool
   | LiteralNum Double
   | LiteralString String
-  | LiteralTable [(Expr, Expr)]
+  | LiteralTable [(Name, Expr)]
   | LiteralTuple [Expr]
   | For Name Expr Block
   | While Expr Block
