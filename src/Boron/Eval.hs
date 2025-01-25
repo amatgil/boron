@@ -50,7 +50,7 @@ eval expr = case expr of
     ret <- getVar (NE.toList env) name
     pure $ case ret of
       Just val -> val
-      Nothing -> error "Symbol does not exist in the current scope"
+      Nothing -> error $ printf "Symbol (%s) does not exist in the current scope" name
     
   Assign name rhs -> do
     value <- eval rhs
