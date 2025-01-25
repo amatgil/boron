@@ -7,6 +7,7 @@ import Text.Megaparsec.Char
 import Text.Megaparsec.Char.Lexer qualified as L
 import Data.Functor
 import Data.Void
+import Data.Function
 
 type Parser = Parsec Void String
 
@@ -106,19 +107,6 @@ ifthenelse = do
           rest <- many elifthenelse
           pure $ If cond whenTrue rest
 
-tableindex :: Parser Expr
-tableindex = do
-  table <- atom
-  index <- brackets expr
-  pure $ TableIndexInto table index
-
-tupleindex :: Parser Expr
-tupleindex = do
-  tup <- atom
-  _index <- char '.'
-  pos <- literalInt
-  pure $ TupleIndexInto tup pos
-  
 assignment :: Parser Expr
 assignment = do
   lhs <- identifier
@@ -133,12 +121,6 @@ reassignment = do
   _op <- symbol ":="
   rhs <- expr
   pure $ Reassign lhs rhs 
-
-call :: Parser Expr
-call = do
-  name <- atom
-  args <- parens $ commaSeparated expr
-  pure $ Call name args
 
 var :: Parser Expr
 var = Var <$> identifier
@@ -160,10 +142,34 @@ atom = choice $ try <$>
 
   
 postfix :: Parser Expr
-postfix = tableindex <|> tupleindex <|> call
+postfix = do
+  lhs <- atom
+  pf <- some $ choice [continueTableIndex
+                      , continueTupleIndex
+                      , continueCall]
+  pure $ foldl (&) lhs pf
+  
+  where
+    continueTableIndex :: Parser (Expr -> Expr)
+    continueTableIndex = do
+      indexed <- brackets expr
+      pure $ flip TableIndexInto indexed
 
+    continueTupleIndex :: Parser (Expr -> Expr)
+    continueTupleIndex = do
+      _t <- char '.' 
+      index <- literalInt
+      pure $ flip TupleIndexInto index
+
+    continueCall :: Parser (Expr -> Expr)
+    continueCall = do
+      args <- parens $ commaSeparated expr
+      pure $ flip Call args
+      
+      
+  
 expr :: Parser Expr
-expr = atom <|> postfix
+expr = try postfix <|> atom
 
 block :: Parser [Expr]
 block = curlies $ expr `sepEndBy` symbol ";"
