@@ -5,6 +5,8 @@ import Boron.Eval
 import Boron.Parser
 import Control.Monad.State.Lazy
 import Text.Megaparsec
+import Debug.Trace
+import Data.Either
 
 -- evals:
 -- y := 0
@@ -32,15 +34,16 @@ import Text.Megaparsec
 --   a = +(a, 1)
 -- }
 -- (y, a)
+         --  \  for x in range(1, 5) {\
+         --  \    y = +(x, y);\
+         --  \  }\
 
 main :: IO ()
 main = let
-  input = "{ let y := 0; \
-          \for x in 1..5 {\
-          \y += x;\
-          \}\
-          \}"
-  in print $ parseProgram input
+  input = "{ let y := 2; }"
+  in putStrLn $ case parseProgram input of
+                  Left err -> err
+                  Right ast -> show ast
 
 -- main :: IO ()
 -- main = print $ parseMaybe literalTable "{ \"a\": 7}"

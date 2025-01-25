@@ -38,16 +38,16 @@ symbol :: String -> Parser String
 symbol = L.symbol hspace
 
 identifier :: Parser String
-identifier = allSymbols <|> allAlphaNum
+identifier = lexeme $ allSymbols <|> allAlphaNum
   where
     validPunct = "!#$%&/=*+-<>?@^_~"
     allSymbols = do
-      inner <- many $ oneOf validPunct
+      inner <- some $ oneOf validPunct
       suffix <- many $ char '\''
       pure $ inner ++ suffix
     allAlphaNum = do
       prefix <- letterChar <|> char '_' -- must start with a letter or underscore
-      inner  <- many (alphaNumChar <|> char '_')
+      inner  <- some (alphaNumChar <|> char '_')
       suffix <- many $ char '\''
       pure $ prefix : (inner ++ suffix)
 
@@ -109,16 +109,16 @@ ifthenelse = do
 
 assignment :: Parser Expr
 assignment = do
+  _let <- symbol "let"
   lhs <- identifier
-  _op <- symbol "="
+  _op <- symbol ":="
   rhs <- expr
   pure $ Assign lhs rhs 
   
 reassignment :: Parser Expr
 reassignment = do
-  _let <- symbol "let"
   lhs <- identifier
-  _op <- symbol ":="
+  _op <- symbol "="
   rhs <- expr
   pure $ Reassign lhs rhs 
 
@@ -174,5 +174,9 @@ expr = try postfix <|> atom
 block :: Parser [Expr]
 block = curlies $ expr `sepEndBy` symbol ";"
 
-parseProgram :: String -> Maybe [Expr]
-parseProgram = parseMaybe block
+--parseProgram :: String -> Either (Par [Expr]
+
+parseProgram :: String -> Either String [Expr]
+parseProgram p =  case parse block "" p of
+  Right ast -> Right ast
+  Left err -> Left $ errorBundlePretty err
