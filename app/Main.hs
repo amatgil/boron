@@ -40,10 +40,10 @@ import Data.Either
 
 main :: IO ()
 main = let
-  input = "{ let y := 2; }"
+  input = "{ let y := 0; for x in (1, 2, 3, 4, 5) { y = x; }; y; }"
   in putStrLn $ case parseProgram input of
                   Left err -> err
-                  Right ast -> show ast
+                  Right ast -> show $ fst $ runState (evalBlock ast) bareEnv
 
 -- main :: IO ()
 -- main = print $ parseMaybe literalTable "{ \"a\": 7}"

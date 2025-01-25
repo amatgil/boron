@@ -137,7 +137,7 @@ atom = choice $ try <$>
        , ifthenelse
        , assignment
        , reassignment
-       -- , var
+       , var
        ]
 
   
