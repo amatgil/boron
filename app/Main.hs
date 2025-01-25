@@ -1,12 +1,8 @@
 module Main where
 
-import Boron.AST
 import Boron.Eval
 import Boron.Parser
 import Control.Monad.State.Lazy
-import Text.Megaparsec
-import Debug.Trace
-import Data.Either
 
 main :: IO ()
 main = let
