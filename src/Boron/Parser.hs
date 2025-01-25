@@ -108,13 +108,13 @@ ifthenelse = do
 
 tableindex :: Parser Expr
 tableindex = do
-  table <- expr
+  table <- atom
   index <- brackets expr
   pure $ TableIndexInto table index
 
 tupleindex :: Parser Expr
 tupleindex = do
-  tup <- expr
+  tup <- atom
   _index <- char '.'
   pos <- literalInt
   pure $ TupleIndexInto tup pos
@@ -136,30 +136,34 @@ reassignment = do
 
 call :: Parser Expr
 call = do
-  name <- expr
+  name <- atom
   args <- parens $ commaSeparated expr
   pure $ Call name args
 
 var :: Parser Expr
 var = Var <$> identifier
 
-expr :: Parser Expr
-expr = choice
-       [ try boolParser
-       , try literalNumber
-       , try literalString
-       , try literalTuple 
-       , try literalTable
-       , try for
-       , try while
-       , try ifthenelse
-       , try tableindex
-       , try tupleindex
-       , try assignment
-       , try reassignment
-       , try var
-       -- , try call
+atom :: Parser Expr
+atom = choice $ try <$>
+       [ boolParser
+       , literalNumber
+       , literalString
+       , literalTuple 
+       , literalTable
+       , for
+       , while
+       , ifthenelse
+       , assignment
+       , reassignment
+       , var
        ]
+
+  
+postfix :: Parser Expr
+postfix = tableindex <|> tupleindex <|> call
+
+expr :: Parser Expr
+expr = atom <|> postfix
 
 block :: Parser [Expr]
 block = curlies $ expr `sepEndBy` symbol ";"
