@@ -47,7 +47,7 @@ identifier = lexeme $ allSymbols <|> allAlphaNum
       pure $ inner ++ suffix
     allAlphaNum = do
       prefix <- letterChar <|> char '_' -- must start with a letter or underscore
-      inner  <- some (alphaNumChar <|> char '_')
+      inner  <- many (alphaNumChar <|> char '_')
       suffix <- many $ char '\''
       pure $ prefix : (inner ++ suffix)
 
@@ -137,7 +137,7 @@ atom = choice $ try <$>
        , ifthenelse
        , assignment
        , reassignment
-       , var
+       -- , var
        ]
 
   
