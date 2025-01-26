@@ -8,6 +8,7 @@ import Text.Megaparsec.Char.Lexer qualified as L
 import Data.Functor
 import Data.Void
 import Data.Function
+import qualified Data.Set as Set
 
 type Parser = Parsec Void String
 
@@ -35,21 +36,24 @@ lexeme = L.lexeme hspace
 
 -- Verbatim strings
 symbol :: String -> Parser String
-symbol = L.symbol hspace
+symbol = L.symbol space
 
 identifier :: Parser String
 identifier = lexeme $ allSymbols <|> allAlphaNum
   where
     validPunct = "!#$%&/=*+-<>?@^_~"
+    keywords = ["for"]
     allSymbols = do
       inner <- some $ oneOf validPunct
       suffix <- many $ char '\''
-      pure $ inner ++ suffix
+      let result = inner ++ suffix
+      if result `elem` keywords then fail "Is keyword" else pure result
     allAlphaNum = do
       prefix <- letterChar <|> char '_' -- must start with a letter or underscore
       inner  <- many (alphaNumChar <|> char '_')
       suffix <- many $ char '\''
-      pure $ prefix : (inner ++ suffix)
+      let result = prefix : (inner ++ suffix)
+      if result `elem` keywords then fail "Is keyword" else pure result
 
 literalInt :: Parser Int
 literalInt = choice [try asDec, try asBin, try asHex]
@@ -80,8 +84,7 @@ for = do
   iterVar <- identifier
   _in <- symbol "in"
   iterVals <- expr
-  body <- block
-  pure $ For iterVar iterVals body
+  For iterVar iterVals <$> block
 
 while :: Parser Expr
 while = do
