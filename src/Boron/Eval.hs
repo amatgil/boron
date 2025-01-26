@@ -210,7 +210,7 @@ evalBuiltIn b args = case b of
             [start, end, stepIn] -> values start (coerceToNum stepIn) end
             _other -> error "unimplemented"
             where
-              values start s end = Number <$> enumFromThenTo (coerceToNum start) s (pred $ coerceToNum end)
+              values start s end = Number <$> enumFromThenTo (coerceToNum start) s (coerceToNum end - 1)
   
 computeArithOp :: ArithOp -> Double -> Double -> Double
 computeArithOp op a b = case op of
@@ -235,7 +235,8 @@ coerceToBool :: Value -> Bool
 coerceToBool (Bool b) = b
 coerceToBool _ = error "Could not coerce to bool" -- TODO: Return Maybe
 
+-- OVERLAPPING pairs
 stencil :: (a -> a -> b) -> [a] -> [b]
 stencil f [] = []
 stencil f [x] = []
-stencil f (x:y:xs) = f x y : stencil f xs
+stencil f (x:y:xs) = f x y : stencil f (y:xs) 
