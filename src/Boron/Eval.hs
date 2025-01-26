@@ -166,6 +166,7 @@ updateVar name rhs (e:es) = if M.member name e
 bareEnv :: Env
 bareEnv = NE.singleton $ M.fromList [ ("print", BuiltIn Print)
                                     , ("println", BuiltIn PrintLn)
+                                    , ("range", BuiltIn Range)
                                     , ("+", BuiltIn $ Arithmetic Add)
                                     , ("-", BuiltIn $ Arithmetic Sub)
                                     , (">", BuiltIn $ Comparison GreaterThan)
@@ -178,6 +179,7 @@ data BuiltIn
     | Arithmetic ArithOp
     | Comparison CompOp
     | Eval
+    | Range 
   deriving (Ord, Eq, Show)
 
 data CompOp
@@ -202,7 +204,11 @@ evalBuiltIn b args = case b of
   Comparison op -> pure . Bool $ all id $ stencil (computeCompOp op) (map coerceToNum args)
   Eval  -> case args of
     [String code] -> undefined
-    _other -> error "Can only evaluate one string" 
+    _other -> error "Can only evaluate one string"
+  Range -> pure . Tuple $ case args of
+            [start, end] -> Number <$> enumFromThenTo (coerceToNum start) 1 (pred $ coerceToNum end)
+            [start, end, step] -> undefined
+            _ -> undefined
   
 computeArithOp :: ArithOp -> Double -> Double -> Double
 computeArithOp op a b = case op of
