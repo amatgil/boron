@@ -42,7 +42,7 @@ identifier :: Parser String
 identifier = lexeme $ allSymbols <|> allAlphaNum
   where
     validPunct = "!#$%&/=*+-<>?@^_~"
-    keywords = ["for"]
+    keywords = ["for", "while"]
     allSymbols = do
       inner <- some $ oneOf validPunct
       suffix <- many $ char '\''
@@ -68,7 +68,7 @@ literalString :: Parser Expr
 literalString = LiteralString <$> lexeme (char '"' *> manyTill L.charLiteral (char '"'))
 
 literalTable :: Parser Expr
-literalTable = LiteralTable <$> (curlies $ commaSeparated pair)
+literalTable = LiteralTable <$> curlies (commaSeparated pair)
   where pair = do
           lhs <- expr
           _c <- symbol ":"
@@ -76,7 +76,7 @@ literalTable = LiteralTable <$> (curlies $ commaSeparated pair)
           pure (lhs, rhs)
 
 literalTuple :: Parser Expr
-literalTuple = LiteralTuple <$> (parens $ commaSeparated expr)
+literalTuple = LiteralTuple <$> parens (commaSeparated expr)
 
 for :: Parser Expr
 for = do
@@ -90,8 +90,8 @@ while :: Parser Expr
 while = do
   _w <- symbol "while"
   predicate <- expr
-  inner <- block
-  pure $ While predicate inner
+  While predicate <$> block
+
 
 ifthenelse :: Parser Expr
 ifthenelse = do
