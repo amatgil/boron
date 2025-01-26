@@ -96,7 +96,7 @@ eval expr = case expr of
         (Nothing, Nothing) -> error "Key not found in table"
       _else -> error "*explosion noises*"
     
-  TupleIndexInto _ _ -> undefined
+  TupleIndexInto _ _ -> error "unimplemented"
 
   Call fExpr argsExpr -> do
     fnMaybe <- eval fExpr
@@ -198,17 +198,19 @@ data ArithOp
 
 evalBuiltIn :: BuiltIn -> [Value] -> Interpreter Value
 evalBuiltIn b args = case b of
-  Print -> undefined
-  PrintLn -> undefined
+  Print -> error "unimplemented"
+  PrintLn -> error "unimplemented"
   Arithmetic op -> pure . Number $ foldl1 (computeArithOp op) (map coerceToNum args)
-  Comparison op -> pure . Bool $ all id $ stencil (computeCompOp op) (map coerceToNum args)
+  Comparison op -> pure . Bool $ and $ stencil (computeCompOp op) (map coerceToNum args)
   Eval  -> case args of
-    [String code] -> undefined
+    [String code] -> error "unimplemented"
     _other -> error "Can only evaluate one string"
   Range -> pure . Tuple $ case args of
-            [start, end] -> Number <$> enumFromThenTo (coerceToNum start) 1 (pred $ coerceToNum end)
-            [start, end, step] -> undefined
-            _ -> undefined
+            [start, end] -> values start 1 end
+            [start, end, stepIn] -> values start (coerceToNum stepIn) end
+            _other -> error "unimplemented"
+            where
+              values start s end = Number <$> enumFromThenTo (coerceToNum start) s (pred $ coerceToNum end)
   
 computeArithOp :: ArithOp -> Double -> Double -> Double
 computeArithOp op a b = case op of
