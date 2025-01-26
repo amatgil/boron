@@ -164,14 +164,14 @@ updateVar name rhs (e:es) = if M.member name e
   
 -- ======== PRIMITIVES =========
 bareEnv :: Env
-bareEnv = NE.singleton $ M.fromList [ ("print", BuiltIn Print)
+bareEnv = NE.singleton $ M.fromList [ ("print",   BuiltIn Print)
                                     , ("println", BuiltIn PrintLn)
-                                    , ("range", BuiltIn Range)
-                                    , ("+", BuiltIn $ Arithmetic Add)
-                                    , ("-", BuiltIn $ Arithmetic Sub)
-                                    , (">", BuiltIn $ Comparison GreaterThan)
-                                    , ("<", BuiltIn $ Comparison LesserThan)
-                                    , ("=", BuiltIn $ Comparison EqualTo)
+                                    , ("range",   BuiltIn Range)
+                                    , ("+",       BuiltIn $ Arithmetic Add)
+                                    , ("-",       BuiltIn $ Arithmetic Sub)
+                                    , (">",       BuiltIn $ Comparison GreaterThan)
+                                    , ("<",       BuiltIn $ Comparison LesserThan)
+                                    , ("=",       BuiltIn $ Comparison EqualTo)
                                     ]
 data BuiltIn
     = Print
