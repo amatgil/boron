@@ -55,20 +55,20 @@ identifier = lexeme $ allSymbols <|> allAlphaNum
       if result `elem` keywords then fail "Is keyword" else pure result
 
 literalInt :: Parser Int
-literalInt = choice [try asBin, try asHex, asDec]
+literalInt = lexeme $ choice [try asBin, try asHex, asDec]
   where
     asBin = string "0b" *> L.binary
     asHex = string "0x" *> L.hexadecimal
     asDec = L.decimal
 
 literalNumber :: Parser Expr
-literalNumber = lexeme $ LiteralNum . toEnum <$> literalInt
+literalNumber = LiteralNum . toEnum <$> literalInt
 
 literalString :: Parser Expr
-literalString = lexeme $ LiteralString <$> lexeme (char '"' *> manyTill L.charLiteral (char '"'))
+literalString = LiteralString <$> lexeme (char '"' *> manyTill L.charLiteral (char '"'))
 
 literalTable :: Parser Expr
-literalTable = lexeme $ LiteralTable <$> curlies (commaSeparated pair)
+literalTable = LiteralTable <$> curlies (commaSeparated pair)
   where
     pair = do
       lhs <- expr
