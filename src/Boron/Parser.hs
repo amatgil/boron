@@ -59,7 +59,7 @@ literalInt = lexeme $ choice [try asBin, try asHex, asDec]
   where
     asBin = string "0b" *> L.binary
     asHex = string "0x" *> L.hexadecimal
-    asDec = L.decimal
+    asDec = L.signed space L.decimal
 
 literalNumber :: Parser Expr
 literalNumber = LiteralNum . toEnum <$> literalInt
