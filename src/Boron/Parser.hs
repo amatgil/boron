@@ -165,8 +165,7 @@ postfix = do
     continueTupleIndex :: Parser (Expr -> Expr)
     continueTupleIndex = do
       _t <- char '.'
-      index <- literalInt
-      pure $ flip TupleIndexInto index
+      flip TupleIndexInto <$> literalInt
 
     continueCall :: Parser (Expr -> Expr)
     continueCall = do
