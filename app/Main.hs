@@ -23,7 +23,7 @@ fntest :: String
 fntest = "{ let f := lambda (x) { +(x, 1) }; f(6) }"
 
 fibProper :: String
-fibProper = "{ let f := lambda (x) { if #t { 1 } else { 3 } }; f(6) }"
+fibProper = "{ let f := lambda (x) { if <(x, 2) { 1 } else { 3 } }; f(1) }"
 
 -- fibProper :: String
 -- fibProper = "{ let f := lambda (n) { 7 }; }"

@@ -96,22 +96,18 @@ while = do
   predicate <- expr
   While predicate <$> block
 
-ifthenelse :: Parser Expr
-ifthenelse = do
-  _if <- symbol "if"
+xthenelse :: String -> Parser Expr
+xthenelse word = do
+  _w <- symbol word
   cond <- expr
   whenTrue <- block
-  innerRest <- many elifthenelse
+  innerRest <- many $ xthenelse "elif"
   _else <- symbol "else"
   whenFalse <- block
   pure $ If cond whenTrue (innerRest ++ whenFalse)
-  where
-    elifthenelse = do
-      _elif <- symbol "elif"
-      cond <- expr
-      whenTrue <- block
-      rest <- many elifthenelse
-      pure $ If cond whenTrue rest
+
+ifthenelse :: Parser Expr
+ifthenelse = xthenelse "if"
 
 assignment :: Parser Expr
 assignment = do
