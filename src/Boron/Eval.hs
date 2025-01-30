@@ -92,7 +92,7 @@ eval expr = case expr of
         (Nothing, Nothing) -> error "Key not found in table"
       _else -> error "*explosion noises*"
   TupleIndexInto _ _ -> error "unimplemented"
-  LambdaE varNames body -> Lambda varNames body
+  LambdaE varNames body -> pure $ Lambda varNames body
   Call fExpr argsExpr -> do
     fnMaybe <- eval fExpr
     args <- traverse eval argsExpr
