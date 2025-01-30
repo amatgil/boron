@@ -101,10 +101,10 @@ ifthenelse = do
   _if <- symbol "if"
   cond <- expr
   whenTrue <- block
-  innerRest <- elifthenelse
+  innerRest <- many elifthenelse
   _else <- symbol "else"
   whenFalse <- block
-  pure $ If cond whenTrue (innerRest : whenFalse)
+  pure $ If cond whenTrue (innerRest ++ whenFalse)
   where
     elifthenelse = do
       _elif <- symbol "elif"
