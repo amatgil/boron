@@ -23,22 +23,9 @@ fntest :: String
 fntest = "{ let f := lambda (x) { +(x, 1) }; f(6) }"
 
 fibProper :: String
-fibProper = "{ let f := lambda (x) { if <(x, 2) { 1 } else { 3 } }; f(1) }"
-
--- fibProper :: String
--- fibProper = "{ let f := lambda (n) { 7 }; }"
-
---  +(-(n, 1), -(n, 2))
+fibProper = "let fib := lambda (n) { if <(n, 2) { 1 } else { +(fib(-(n, 1)), fib(-(n, 2))) } }; f(10)"
 
 main :: IO ()
 main = putStrLn $ case parseProgram fibProper of
   Left err -> err
-  Right ast -> show $ evalState (evalBlock ast) bareEnv
-
--- \        if <(x, 2) {                \n\
--- \          1                         \n\
--- \        }                           \n\
--- \        else {                      \n\
--- \            +(fib(-(n, 1), -(n, 2)) \n\
--- \        }                           \n\
--- \    )};                             \n\
+  Right ast -> show $ evalState (evalExprs ast) bareEnv

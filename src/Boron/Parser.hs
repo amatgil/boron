@@ -176,12 +176,15 @@ postfix = do
 expr :: Parser Expr
 expr = try postfix <|> atom
 
+exprs :: Parser [Expr]
+exprs = expr `sepEndBy` symbol ";"
+
 block :: Parser [Expr]
-block = curlies $ expr `sepEndBy` symbol ";"
+block = curlies exprs
 
 -- parseProgram :: String -> Either (Par [Expr]
 
 parseProgram :: String -> Either String [Expr]
-parseProgram p = case parse block "" p of
+parseProgram p = case parse exprs "" p of
   Right ast -> Right ast
   Left err -> Left $ errorBundlePretty err
