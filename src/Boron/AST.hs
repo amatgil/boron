@@ -1,8 +1,11 @@
 module Boron.AST where
+
 import Numeric.Natural
 
 type Name = String
+
 type Block = [Expr]
+
 type Nat = Natural
 
 -- AST proper
@@ -21,5 +24,6 @@ data Expr
   | Assign Name Expr
   | Reassign Name Expr
   | Call Expr [Expr]
+  | LambdaE [Name] Block
   | Var Name
   deriving (Show, Eq, Ord)
