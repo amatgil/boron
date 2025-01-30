@@ -25,13 +25,10 @@ curlies = between (symbol "{") (symbol "}")
 commaSeparated :: Parser a -> Parser [a]
 commaSeparated = flip sepEndBy $ symbol ","
 
-boolParser :: Parser Expr
-boolParser =
-  LiteralBool
-    <$> choice
-      [ try $ symbol "#t" $> True,
-        symbol "#f" $> False
-      ]
+literalBool :: Parser Expr
+literalBool = do
+  _ <- char '#'
+  LiteralBool <$> choice [symbol "t" $> True, symbol "f" $> False]
 
 -- Identifiers and numbers such
 lexeme :: Parser a -> Parser a
@@ -134,7 +131,7 @@ lambda = do
 atom :: Parser Expr
 atom =
   choice
-    [ boolParser,
+    [ literalBool,
       literalNumber,
       literalString,
       literalTuple,
