@@ -22,7 +22,7 @@ data Closure = Closure
   }
   deriving (Ord, Eq, Show)
 
-type Interpreter = State Env
+type Interpreter = StateT Env IO
 
 -- What an Expr reduces down to
 data Value
@@ -102,7 +102,7 @@ eval expr = case expr of
         globalScope <- gets NE.last
         let paramScope = M.fromList $ zip names args
 
-        let (ret, env') = runState (evalExprs body) (paramScope :| [globalScope])
+        (ret, env') <- liftIO $ runStateT (evalExprs body) (paramScope :| [globalScope])
         let globalScope' = NE.last env'
 
         modify (\env -> NE.fromList $ NE.init env ++ [globalScope'])
@@ -191,8 +191,8 @@ data ArithOp
 
 evalBuiltIn :: BuiltIn -> [Value] -> Interpreter Value
 evalBuiltIn b args = case b of
-  Print -> error "unimplemented"
-  PrintLn -> error "unimplemented"
+  Print -> builtinPrint args
+  PrintLn -> builtinPrintLn args
   Arithmetic op -> pure . Number $ foldl1 (computeArithOp op) (map coerceToNum args)
   Comparison op -> pure . Bool $ and $ stencil (computeCompOp op) (map coerceToNum args)
   Eval -> case args of
@@ -233,3 +233,12 @@ stencil :: (a -> a -> b) -> [a] -> [b]
 stencil f [] = []
 stencil f [x] = []
 stencil f (x : y : xs) = f x y : stencil f (y : xs)
+
+stringify :: Value -> String
+stringify = show
+
+builtinPrint :: [Value] -> Interpreter Value
+builtinPrint args = unit <$ liftIO (traverse (putStr . stringify) args)
+
+builtinPrintLn :: [Value] -> Interpreter Value
+builtinPrintLn args = unit <$ liftIO (traverse (putStrLn . stringify) args)
