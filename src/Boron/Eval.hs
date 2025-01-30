@@ -163,6 +163,8 @@ bareEnv =
         ("range", BuiltIn Range),
         ("+", BuiltIn $ Arithmetic Add),
         ("-", BuiltIn $ Arithmetic Sub),
+        ("*", BuiltIn $ Arithmetic Mul),
+        ("/", BuiltIn $ Arithmetic Div),
         (">", BuiltIn $ Comparison GreaterThan),
         ("<", BuiltIn $ Comparison LesserThan),
         ("=", BuiltIn $ Comparison EqualTo)

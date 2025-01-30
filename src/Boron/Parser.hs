@@ -185,6 +185,6 @@ block = curlies exprs
 -- parseProgram :: String -> Either (Par [Expr]
 
 parseProgram :: String -> Either String [Expr]
-parseProgram p = case parse exprs "" p of
+parseProgram p = case parse (exprs <* eof) "" p of
   Right ast -> Right ast
   Left err -> Left $ errorBundlePretty err
