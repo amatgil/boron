@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# OPTIONS_GHC -w -Werror -Wincomplete-patterns #-}
 
 module Boron.Eval where
@@ -6,6 +7,7 @@ import Boron.AST
 import Control.Monad.State.Lazy
 import Data.Fixed (mod')
 import Data.Foldable
+import Data.List
 import Data.List.NonEmpty (NonEmpty ((:|)), (<|))
 import Data.List.NonEmpty qualified as NE
 import Data.Map qualified as M
@@ -235,7 +237,20 @@ stencil f [x] = []
 stencil f (x : y : xs) = f x y : stencil f (y : xs)
 
 stringify :: Value -> String
-stringify = show
+stringify = \case
+  Bool True -> "#t"
+  Bool False -> "#f"
+  Number n -> if toEnum (round n) == n then show $ fromEnum n else show n
+  String s -> "\"" ++ s ++ "\""
+  Tuple vals -> "(" ++ intercalate ", " (map stringify vals) ++ ")"
+  Lambda _ _ -> "<lambda expr>"
+  BuiltIn b -> "<builtin fn>"
+  Table pairs dflt -> "{" ++ intercalate ", " prettypairs ++ "}"
+    where
+      prettypairs =
+        map
+          (\(k, v) -> stringify k ++ " -> " ++ stringify v)
+          $ M.toList pairs
 
 builtinPrint :: [Value] -> Interpreter Value
 builtinPrint args = unit <$ liftIO (traverse (putStr . stringify) args)
