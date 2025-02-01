@@ -93,7 +93,11 @@ eval expr = case expr of
         (Nothing, Just d) -> d
         (Nothing, Nothing) -> error "Key not found in table"
       _else -> error "*explosion noises*"
-  TupleIndexInto _ _ -> error "unimplemented"
+  TupleIndexInto tup index -> do
+    t <- eval tup
+    pure $ case t of
+      Tuple vals -> vals !! index
+      _ -> error "Cannot index value that isn't tuple as tuple"
   LambdaE varNames body -> pure $ Lambda varNames body
   Call fExpr argsExpr -> do
     fnMaybe <- eval fExpr
