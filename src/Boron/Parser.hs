@@ -132,7 +132,7 @@ atom :: Parser Expr
 atom =
   choice
     [ literalBool,
-      literalNumber,
+      try literalNumber,
       literalString,
       literalTuple,
       literalTable,
