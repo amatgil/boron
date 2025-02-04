@@ -6,6 +6,7 @@ module Boron.Eval where
 import Boron.AST
 import Control.Monad.State.Lazy
 import Control.Monad.Except
+import Data.Maybe
 import Data.Fixed (mod')
 import Data.Foldable
 import Data.List
@@ -57,7 +58,12 @@ eval expr = case expr of
     pure unit
   Reassign name rhs -> do
     value <- eval rhs
-    modify $ \env -> NE.fromList $ updateVar name value (NE.toList env)
+    env <- get 
+    -- This error comes from that 'newEnv' must be [Scope] but i'm trying to make it be Interpereter by returning throwError
+    let newEnv = case updateVar name value (NE.toList env) of 
+            Just newEnv -> newEnv
+            Nothing -> throwError $ printf "Could not reassign: '%s' does not exist" name
+    put $ NE.fromList newEnv
     pure unit
   For var valuesExpr inner -> do
     values <- evalIterable valuesExpr
@@ -76,7 +82,7 @@ eval expr = case expr of
       else
         if p == Bool False
           then pure unit
-          else error "While predicate must be bool"
+          else throwError $ printf "While predicate must be bool, but it was %s" $ stringify p
   If condExpr whenTrue whenFalse -> do
     cond <- eval condExpr
     if cond == Bool True
@@ -86,16 +92,16 @@ eval expr = case expr of
     evaluated <- eval maybeTExpr
     key <- eval keyExpr
     case evaluated of
-      Table t dflt -> pure $ case (M.lookup key t, dflt) of
-        (Just val, _) -> val
-        (Nothing, Just d) -> d
-        (Nothing, Nothing) -> error "Key not found in table"
-      _else -> error "*explosion noises*"
+      Table t dflt -> case (M.lookup key t, dflt) of
+        (Just val, _) -> pure val
+        (Nothing, Just d) -> pure d
+        (Nothing, Nothing) -> throwError $ printf "Key '%s' not found in table that has no default" $ stringify key
+      _else -> throwError "Cannot use table indexing into non-table"
   TupleIndexInto tup index -> do
     t <- eval tup
-    pure $ case t of
-      Tuple vals -> vals !! index
-      _ -> error "Cannot index value that isn't tuple as tuple"
+    case t of
+      Tuple vals -> pure $ vals !! index -- TODO: make this `throwError` instead of panicking
+      _other -> throwError "Cannot index value that isn't tuple as tuple"
   LambdaE varNames body -> pure $ Lambda varNames body
   Call fExpr argsExpr -> do
     fnMaybe <- eval fExpr
@@ -113,7 +119,7 @@ eval expr = case expr of
 
         pure ret
       BuiltIn b -> evalBuiltIn b args
-      _else -> error "Cannot call a function that isn't a function"
+      other -> throwError $ printf "Cannot call %s as a function" $ stringify other
 
 evalBody :: Name -> Value -> Block -> Interpreter Value
 evalBody name value block = do
@@ -140,7 +146,7 @@ evalIterable e = do
   case v of
     Tuple tup -> pure tup
     Table t _ -> pure $ map snd $ M.toList t
-    _other -> error "Cannot iterate over non-tuple/table"
+    other -> throwError $ printf "Cannot iterate over non-tuple/table: %s" $ stringify other
 
 getVar :: [Scope] -> Name -> Interpreter Value
 getVar [] name = throwError $ printf "Symbol (%s) does not exist in the current scope" name
@@ -148,12 +154,12 @@ getVar (s : ss) name = case M.lookup name s of
   Just v -> pure v
   Nothing -> getVar ss name
 
-updateVar :: Name -> Value -> [Scope] -> [Scope]
-updateVar name _ [] = error $ printf "%s does not exist in this env" name
+updateVar :: Name -> Value -> [Scope] -> Maybe [Scope]
+updateVar name _ [] = Nothing -- throwError $ printf "%s does not exist in this env" name
 updateVar name rhs (e : es) =
   if M.member name e
-    then M.update (\_ -> Just rhs) name e : es
-    else e : updateVar name rhs es
+    then Just $ M.update (\_ -> Just rhs) name e : es
+    else updateVar name rhs es >>= \updated -> Just $ e : updated
 
 -- ======== PRIMITIVES =========
 bareEnv :: Env
@@ -199,17 +205,29 @@ evalBuiltIn :: BuiltIn -> [Value] -> Interpreter Value
 evalBuiltIn b args = case b of
   Print -> builtinPrint args
   PrintLn -> builtinPrintLn args
-  Arithmetic op -> pure . Number $ foldl1 (computeArithOp op) (map coerceToNum args)
-  Comparison op -> pure . Bool $ and $ stencil (computeCompOp op) (map coerceToNum args)
+  Arithmetic op -> case mapM coerceToNum args of
+                        Just nums -> pure . Number $ foldl1 (computeArithOp op) nums
+                        Nothing -> throwError "Could not arithmetic over non-number"
+  Comparison op -> case mapM coerceToNum args of
+                        Just nums -> pure . Bool $ and $ stencil (computeCompOp op) nums
+                        Nothing -> throwError "Could not boolean over non-bools"
+    
   Eval -> case args of
     [String code] -> error "unimplemented"
-    _other -> error "Can only evaluate one string"
-  Range -> pure . Tuple $ case args of
-    [start, end] -> values start 1 end
-    [start, end, stepIn] -> values start (coerceToNum stepIn) end
-    _other -> error "unimplemented"
+    other -> throwError "`eval` can only evaluate one string"
+  Range -> case args of
+    [start, end] -> valuesNoStep start end
+    [start, end, stepIn] -> valuesWithStep start stepIn end
+    _other -> throwError "`range` must be called with two or three arguments: (start, end) or (start, end, step)"
     where
-      values start s end = Number <$> enumFromThenTo (coerceToNum start) s (coerceToNum end - 1)
+      values from over to = Number <$> enumFromThenTo from over to
+      valuesNoStep s e = case (coerceToNum s, coerceToNum e) of 
+                       (Just startV, Just endV) -> pure . Tuple $ values startV 1 endV
+                       _other -> throwError "Range must be called with numbers" -- TODO: improve message
+      valuesWithStep s st e = case (coerceToNum s, coerceToNum st, coerceToNum e) of 
+                       (Just startV, Just stepV, Just endV) -> pure . Tuple $ values startV stepV endV
+                       _other -> throwError "Range must be called with numbers" -- TODO: improve message
+        
 
 computeArithOp :: ArithOp -> Double -> Double -> Double
 computeArithOp op a b = case op of
@@ -225,14 +243,14 @@ computeCompOp op a b = case op of
   LesserThan -> a < b
   EqualTo -> a == b
 
-coerceToNum :: Value -> Double
-coerceToNum (Bool b) = if b then 1.0 else 0.0
-coerceToNum (Number x) = x
-coerceToNum _ = error "Could not coerce to number" -- TODO: Return Maybe
+coerceToNum :: Value -> Maybe Double
+coerceToNum (Bool b) = Just $ if b then 1.0 else 0.0
+coerceToNum (Number x) = Just x
+coerceToNum x = Nothing
 
-coerceToBool :: Value -> Bool
-coerceToBool (Bool b) = b
-coerceToBool _ = error "Could not coerce to bool" -- TODO: Return Maybe
+coerceToBool :: Value -> Maybe Bool
+coerceToBool (Bool b) = Just b
+coerceToBool x = Nothing
 
 -- OVERLAPPING pairs
 stencil :: (a -> a -> b) -> [a] -> [b]
