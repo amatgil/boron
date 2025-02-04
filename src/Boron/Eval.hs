@@ -57,13 +57,12 @@ eval expr = case expr of
     modify $ \(e :| es) -> M.insert name value e :| es
     pure unit
   Reassign name rhs -> do
-    value <- eval rhs
     env <- get 
+    value <- eval rhs -- not a block! that'd cause a lot of weirdness
     case updateVar name value (NE.toList env)  of
       Just newEnv -> do put $ NE.fromList newEnv
                         pure unit
-      Nothing -> throwError $ printf "Could not reassign: '%s' does not exist" name
-
+      Nothing -> throwError $ printf "Could not reassign: '%s' does not exist in the current scope" name
   For var valuesExpr inner -> do
     values <- evalIterable valuesExpr
 

@@ -30,7 +30,7 @@ tableTest :: String
 tableTest = "let t := {1: 7, 2:42, \"hi\":420, lambda (n) { n }:\"yep!\", lambda (n) {n}:10, 8:inf }; println(/(-1,0));"
 
 main :: IO ()
-main = case parseProgram "let x := \"a string\"; println(y)" of
+main = case parseProgram "let x := \"a string\"; x = {x=7}; x" of
   Left err -> putStrLn err
   Right ast -> do
     ret <- runExceptT $ runStateT (evalExprs ast) bareEnv 
