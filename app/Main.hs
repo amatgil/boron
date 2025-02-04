@@ -35,6 +35,6 @@ main = case parseProgram "let x := \"a string\"; println(y)" of
   Right ast -> do
     ret <- runExceptT $ runStateT (evalExprs ast) bareEnv 
     case ret of
-      Left except -> print $ "EXCEPTION: " ++ show except
-      Right val -> print $  "Result: " ++ show (fst val)
+      Left except -> print $ "EXCEPTION: " ++ except
+      Right val -> print $  "Result: " ++ stringify (fst val)
 
