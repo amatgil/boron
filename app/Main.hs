@@ -3,6 +3,7 @@ module Main where
 import Boron.Eval
 import Boron.Parser
 import Control.Monad.State.Lazy
+import Control.Monad.Except
 
 input :: String
 input = "{ let y := 0; for x in (1, 2, 3, 4, 5) { y = +(x, y); }; y; }"
@@ -29,6 +30,11 @@ tableTest :: String
 tableTest = "let t := {1: 7, 2:42, \"hi\":420, lambda (n) { n }:\"yep!\", lambda (n) {n}:10, 8:inf }; println(/(-1,0));"
 
 main :: IO ()
-main = case parseProgram "println(-1)" of
+main = case parseProgram "let x := \"a string\"; println(y)" of
   Left err -> putStrLn err
-  Right ast -> putStrLn "" <* evalStateT (evalExprs ast) bareEnv
+  Right ast -> do
+    ret <- runExceptT $ runStateT (evalExprs ast) bareEnv 
+    case ret of
+      Left except -> print $ "EXCEPTION: " ++ show except
+      Right val -> print $  "Result: " ++ show (fst val)
+

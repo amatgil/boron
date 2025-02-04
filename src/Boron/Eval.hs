@@ -5,6 +5,7 @@ module Boron.Eval where
 
 import Boron.AST
 import Control.Monad.State.Lazy
+import Control.Monad.Except
 import Data.Fixed (mod')
 import Data.Foldable
 import Data.List
@@ -24,7 +25,7 @@ data Closure = Closure
   }
   deriving (Ord, Eq, Show)
 
-type Interpreter = StateT Env IO
+type Interpreter = StateT Env (ExceptT String IO)
 
 -- What an Expr reduces down to
 data Value
@@ -49,10 +50,7 @@ eval expr = case expr of
   LiteralTable vs -> flip Table Nothing . M.fromList <$> traverse (\(e1, e2) -> liftA2 (,) (eval e1) (eval e2)) vs
   Var name -> do
     env <- get
-    ret <- getVar (NE.toList env) name
-    pure $ case ret of
-      Just val -> val
-      Nothing -> error $ printf "Symbol (%s) does not exist in the current scope" name
+    getVar (NE.toList env) name
   Assign name rhs -> do
     value <- eval rhs
     modify $ \(e :| es) -> M.insert name value e :| es
@@ -108,7 +106,7 @@ eval expr = case expr of
         globalScope <- gets NE.last
         let paramScope = M.fromList $ zip names args
 
-        (ret, env') <- liftIO $ runStateT (evalExprs body) (paramScope :| [globalScope])
+        (ret, env') <-  lift $ runStateT (evalExprs body) (paramScope :| [globalScope])
         let globalScope' = NE.last env'
 
         modify (\env -> NE.fromList $ NE.init env ++ [globalScope'])
@@ -144,10 +142,10 @@ evalIterable e = do
     Table t _ -> pure $ map snd $ M.toList t
     _other -> error "Cannot iterate over non-tuple/table"
 
-getVar :: [Scope] -> Name -> Interpreter (Maybe Value)
-getVar [] _ = pure Nothing
+getVar :: [Scope] -> Name -> Interpreter Value
+getVar [] name = throwError $ printf "Symbol (%s) does not exist in the current scope" name
 getVar (s : ss) name = case M.lookup name s of
-  Just v -> pure $ Just v
+  Just v -> pure v
   Nothing -> getVar ss name
 
 updateVar :: Name -> Value -> [Scope] -> [Scope]
