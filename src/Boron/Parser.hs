@@ -181,8 +181,6 @@ exprs = expr `sepEndBy` symbol ";"
 block :: Parser [Expr]
 block = curlies exprs
 
--- parseProgram :: String -> Either (Par [Expr]
-
 parseProgram :: String -> Either String [Expr]
 parseProgram p = case parse (exprs <* eof) "" p of
   Right ast -> Right ast
