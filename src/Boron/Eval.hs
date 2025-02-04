@@ -59,12 +59,11 @@ eval expr = case expr of
   Reassign name rhs -> do
     value <- eval rhs
     env <- get 
-    -- This error comes from that 'newEnv' must be [Scope] but i'm trying to make it be Interpereter by returning throwError
-    let newEnv = case updateVar name value (NE.toList env) of 
-            Just newEnv -> newEnv
-            Nothing -> throwError $ printf "Could not reassign: '%s' does not exist" name
-    put $ NE.fromList newEnv
-    pure unit
+    case updateVar name value (NE.toList env)  of
+      Just newEnv -> do put $ NE.fromList newEnv
+                        pure unit
+      Nothing -> throwError $ printf "Could not reassign: '%s' does not exist" name
+
   For var valuesExpr inner -> do
     values <- evalIterable valuesExpr
 
