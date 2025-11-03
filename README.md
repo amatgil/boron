@@ -1,6 +1,6 @@
 # Boron
 
-A simple (in-progres) interpreted and dynamically typed scripting language
+A simple (in-progress) interpreted and dynamically typed scripting language
 
 # Examples
 ```
